@@ -1,0 +1,4 @@
+﻿  glad.c
+  Origem.cpp
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  Exericio8.vcxproj -> C:\Users\admin\Desktop\CGCCHibrido-main\Hello3D\Debug\Hello3D.exe
