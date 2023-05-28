@@ -1,15 +1,19 @@
-/* Hello Triangle - c�digo adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
+/* Hello Triangle - c digo adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
  *
  * Adaptado por Rossana Baptista Queiroz
- * para a disciplina de Processamento Gr�fico - Jogos Digitais - Unisinos
- * Vers�o inicial: 7/4/2017
- * �ltima atualiza��o em 12/05/2023
+ * para a disciplina de Processamento Gr fico - Jogos Digitais - Unisinos
+ * Vers o inicial: 7/4/2017
+ *  ltima atualiza  o em 12/05/2023
  *
  */
 
 #include <iostream>
 #include <string>
 #include <assert.h>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
 
 using namespace std;
 
@@ -25,17 +29,17 @@ using namespace std;
 #include <glm/gtc/type_ptr.hpp>
 
 
-// Prot�tipo da fun��o de callback de teclado
+// Prot tipo da fun  o de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
-// Prot�tipos das fun��es
+// Prot tipos das fun  es
 int setupShader();
 int setupGeometry();
 
-// Dimens�es da janela (pode ser alterado em tempo de execu��o)
+// Dimens es da janela (pode ser alterado em tempo de execu  o)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 
-// C�digo fonte do Vertex Shader (em GLSL): ainda hardcoded
+// C digo fonte do Vertex Shader (em GLSL): ainda hardcoded
 const GLchar* vertexShaderSource = "#version 450\n"
 "layout (location = 0) in vec3 position;\n"
 "layout (location = 1) in vec3 color;\n"
@@ -43,12 +47,12 @@ const GLchar* vertexShaderSource = "#version 450\n"
 "out vec4 finalColor;\n"
 "void main()\n"
 "{\n"
-//...pode ter mais linhas de c�digo aqui!
+//...pode ter mais linhas de c digo aqui!
 "gl_Position = model * vec4(position, 1.0);\n"
 "finalColor = vec4(color, 1.0);\n"
 "}\0";
 
-//C�difo fonte do Fragment Shader (em GLSL): ainda hardcoded
+//C difo fonte do Fragment Shader (em GLSL): ainda hardcoded
 const GLchar* fragmentShaderSource = "#version 450\n"
 "in vec4 finalColor;\n"
 "out vec4 color;\n"
@@ -61,15 +65,17 @@ bool rotateX = false, rotateY = false, rotateZ = false;
 float translateX = 0.0f, translateY = 0.0f, translateZ = 0.0f;
 float scale = 1.0f;
 
-// Fun��o MAIN
+int verticesToDrawCount = 0;
+
+// Fun  o MAIN
 int main()
 {
-	// Inicializa��o da GLFW
+	// Inicializa  o da GLFW
 	glfwInit();
 
-	//Muita aten��o aqui: alguns ambientes n�o aceitam essas configura��es
-	//Voc� deve adaptar para a vers�o do OpenGL suportada por sua placa
-	//Sugest�o: comente essas linhas de c�digo para desobrir a vers�o e
+	//Muita aten  o aqui: alguns ambientes n o aceitam essas configura  es
+	//Voc  deve adaptar para a vers o do OpenGL suportada por sua placa
+	//Sugest o: comente essas linhas de c digo para desobrir a vers o e
 	//depois atualize (por exemplo: 4.5 com 4 e 5)
 	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -80,27 +86,27 @@ int main()
 //	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 //#endif
 
-	// Cria��o da janela GLFW
+	// Cria  o da janela GLFW
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Ola 3D -- Caio Rodrigues!", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 
-	// Fazendo o registro da fun��o de callback para a janela GLFW
+	// Fazendo o registro da fun  o de callback para a janela GLFW
 	glfwSetKeyCallback(window, key_callback);
 
-	// GLAD: carrega todos os ponteiros d fun��es da OpenGL
+	// GLAD: carrega todos os ponteiros d fun  es da OpenGL
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
 
 	}
 
-	// Obtendo as informa��es de vers�o
+	// Obtendo as informa  es de vers o
 	const GLubyte* renderer = glGetString(GL_RENDERER); /* get renderer string */
 	const GLubyte* version = glGetString(GL_VERSION); /* version as a string */
 	cout << "Renderer: " << renderer << endl;
 	cout << "OpenGL version supported " << version << endl;
 
-	// Definindo as dimens�es da viewport com as mesmas dimens�es da janela da aplica��o
+	// Definindo as dimens es da viewport com as mesmas dimens es da janela da aplica  o
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
@@ -109,7 +115,7 @@ int main()
 	// Compilando e buildando o programa de shader
 	GLuint shaderID = setupShader();
 
-	// Gerando um buffer simples, com a geometria de um tri�ngulo
+	// Gerando um buffer simples, com a geometria de um tri ngulo
 	GLuint VAO = setupGeometry();
 
 
@@ -124,10 +130,10 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 
-	// Loop da aplica��o - "game loop"
+	// Loop da aplica  o - "game loop"
 	while (!glfwWindowShouldClose(window))
 	{
-		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as fun��es de callback correspondentes
+		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as fun  es de callback correspondentes
 		glfwPollEvents();
 
 		// Limpa o buffer de cor
@@ -179,26 +185,26 @@ int main()
 		// Poligono Preenchido - GL_TRIANGLES
 
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 72);
+		glDrawArrays(GL_TRIANGLES, 0, verticesToDrawCount);
 
 		// Chamada de desenho - drawcall
 		// CONTORNO - GL_LINE_LOOP
 
-		glDrawArrays(GL_POINTS, 0, 72);
-		glBindVertexArray(0);
+		// glDrawArrays(GL_POINTS, 0, verticesToDrawCount);
+		// glBindVertexArray(0);
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
 	}
 	// Pede pra OpenGL desalocar os buffers
 	glDeleteVertexArrays(1, &VAO);
-	// Finaliza a execu��o da GLFW, limpando os recursos alocados por ela
+	// Finaliza a execu  o da GLFW, limpando os recursos alocados por ela
 	glfwTerminate();
 	return 0;
 }
 
-// Fun��o de callback de teclado - s� pode ter uma inst�ncia (deve ser est�tica se
-// estiver dentro de uma classe) - � chamada sempre que uma tecla for pressionada
+// Fun  o de callback de teclado - s  pode ter uma inst ncia (deve ser est tica se
+// estiver dentro de uma classe) -   chamada sempre que uma tecla for pressionada
 // ou solta via GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
@@ -283,18 +289,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 }
 
-//Esta fun��o est� basntante hardcoded - objetivo � compilar e "buildar" um programa de
-// shader simples e �nico neste exemplo de c�digo
-// O c�digo fonte do vertex e fragment shader est� nos arrays vertexShaderSource e
-// fragmentShader source no ini�io deste arquivo
-// A fun��o retorna o identificador do programa de shader
+//Esta fun  o est  basntante hardcoded - objetivo   compilar e "buildar" um programa de
+// shader simples e  nico neste exemplo de c digo
+// O c digo fonte do vertex e fragment shader est  nos arrays vertexShaderSource e
+// fragmentShader source no ini io deste arquivo
+// A fun  o retorna o identificador do programa de shader
 int setupShader()
 {
 	// Vertex shader
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
-	// Checando erros de compila��o (exibi��o via log no terminal)
+	// Checando erros de compila  o (exibi  o via log no terminal)
 	GLint success;
 	GLchar infoLog[512];
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
@@ -307,7 +313,7 @@ int setupShader()
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
-	// Checando erros de compila��o (exibi��o via log no terminal)
+	// Checando erros de compila  o (exibi  o via log no terminal)
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
 	if (!success)
 	{
@@ -331,160 +337,116 @@ int setupShader()
 	return shaderProgram;
 }
 
-// Esta fun��o est� bastante harcoded - objetivo � criar os buffers que armazenam a 
-// geometria de um tri�ngulo
-// Apenas atributo coordenada nos v�rtices
+std::vector<std::string> split(const std::string &s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+// Esta fun  o est  bastante harcoded - objetivo   criar os buffers que armazenam a 
+// geometria de um tri ngulo
+// Apenas atributo coordenada nos v rtices
 // 1 VBO com as coordenadas, VAO com apenas 1 ponteiro para atributo
-// A fun��o retorna o identificador do VAO
+// A fun  o retorna o identificador do VAO
 int setupGeometry()
 {
-	// Aqui setamos as coordenadas x, y e z do tri�ngulo e as armazenamos de forma
-	// sequencial, j� visando mandar para o VBO (Vertex Buffer Objects)
-	// Cada atributo do v�rtice (coordenada, cores, coordenadas de textura, normal, etc)
-	// Pode ser arazenado em um VBO �nico ou em VBOs separados
-	GLfloat vertices[] = {
+	int verticesCount = 0;
+	GLfloat vertices[10000][3] = { };
 
-		//Base da piramide: 2 triangulos
-		//x    y    z    r    g    b
+	int trianglesCount = 0;
+	int triangles[10000][3] = { };
 
-		// primeiro cubo
-		// frente
-		 -0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 1.0, 0.0, 0.0,
-		-0.5 + 0.3, 0.5 + 0.3,  0.5 + 0.3, 1.0, 0.0, 0.0,
-		 0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 1.0, 0.0, 0.0,
+	std::ifstream file("cow.obj");
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+			std::vector<std::string> lineElements = split(line, ' ');
 
-		-0.5 + 0.3, 0.5 + 0.3,  0.5 + 0.3, 1.0, 0.0, 0.0,
-		 0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 1.0, 0.0, 0.0,
-		 0.5 + 0.3, 0.5 + 0.3, 0.5 + 0.3, 1.0, 0.0, 0.0,
+			if (lineElements.size() > 0) {
+				if (lineElements[0].compare("v") == 0) {
+					// vertice
+					GLfloat x = std::stof(lineElements[1]);
+					GLfloat y = std::stof(lineElements[2]);
+					GLfloat z = std::stof(lineElements[3]);
 
-      // tr�s
-      -0.5 + 0.3, -0.5 + 0.3, -0.5 + 0.3, 0.0, 0.0, 0.0,
-      -0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 0.0, 0.0, 0.0,
-      0.5 + 0.3, -0.5 + 0.3, -0.5 + 0.3, 0.0, 0.0, 0.0,
+					vertices[verticesCount][0] = x;
+					vertices[verticesCount][1] = y;
+					vertices[verticesCount][2] = z;
+					verticesCount++;
+				}
+				else if (lineElements[0].compare("f") == 0) {
+					int vertice1 = std::stoi(lineElements[1]);
+					int vertice2 = std::stoi(lineElements[2]);
+					int vertice3 = std::stoi(lineElements[3]);
 
-      -0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 0.0, 0.0, 0.0,
-      0.5 + 0.3, -0.5 + 0.3, -0.5 + 0.3, 0.0, 0.0, 0.0,
-      0.5 + 0.3, 0.5 + 0.3, -0.5 + 0.3, 0.0, 0.0, 0.0,
+					triangles[trianglesCount][0] = vertice1;
+					triangles[trianglesCount][1] = vertice2;
+					triangles[trianglesCount][2] = vertice3;
+					trianglesCount++;
+				}
+			}
+        }
+        file.close();
+    } else {
+        std::cerr << "Unable to open file";
+    }
 
-		  // direita
-		   0.5 + 0.3, -0.5 + 0.3, -0.5 + 0.3, 0.0, 1.0, 0.0,
-		   0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 0.0, 1.0, 0.0,
-		   0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 0.0, 1.0, 0.0,
+	GLfloat verticesToDraw[150000] = { };
 
-		   0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 0.0, 1.0, 0.0,
-		   0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 0.0, 1.0, 0.0,
-		   0.5 + 0.3, 0.5 + 0.3, 0.5 + 0.3, 0.0, 1.0, 0.0,
+	int auxCount = 0;
+	for (int i = 0; i < trianglesCount; i++)  {
+		for (int j = 0; j < 3; j++) {
+			int verticeIndex = triangles[i][j] - 1;
+			verticesToDraw[auxCount] = vertices[verticeIndex][0];
+			auxCount++;
+			verticesToDraw[auxCount] = vertices[verticeIndex][1];
+			auxCount++;
+			verticesToDraw[auxCount] = vertices[verticeIndex][2];
+			auxCount++;
 
-		   // esquerda
-		   -0.5 + 0.3, -0.5 + 0.3, -0.5 + 0.3, 0.0, 0.0, 1.0,
-		   -0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 0.0, 0.0, 1.0,
-		   -0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 0.0, 0.0, 1.0,
+			verticesToDraw[auxCount] = 1.0;
+			auxCount++;
+			verticesToDraw[auxCount] = 0.20;
+			auxCount++;
+			verticesToDraw[auxCount] = 0.8;
+			auxCount++;
+		}
+	}
 
-		   -0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 0.0, 0.0, 1.0,
-		   -0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 0.0, 0.0, 1.0,
-		   -0.5 + 0.3, 0.5 + 0.3, 0.5 + 0.3, 0.0, 0.0, 1.0,
-
-		   // cima
-		   -0.5 + 0.3, 0.5 + 0.3,  0.5 + 0.3, 1.0, 1.0, 0.0,
-		   -0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 1.0, 1.0, 0.0,
-			0.5 + 0.3, 0.5 + 0.3, 0.5 + 0.3, 1.0, 1.0, 0.0,
-
-		   -0.5 + 0.3, 0.5 + 0.3,  -0.5 + 0.3, 1.0, 1.0, 0.0,
-			0.5 + 0.3, 0.5 + 0.3, 0.5 + 0.3, 1.0, 1.0, 0.0,
-			0.5 + 0.3, 0.5 + 0.3, -0.5 + 0.3, 1.0, 1.0, 0.0,
-
-			// baixo
-			-0.5 + 0.3, -0.5 + 0.3,  0.5 + 0.3, 1.0, 0.0, 1.0,
-			-0.5 + 0.3, -0.5 + 0.3,  -0.5 + 0.3, 1.0, 0.0, 1.0,
-			 0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 1.0, 0.0, 1.0,
-
-			-0.5 + 0.3, -0.5 + 0.3,  -0.5 + 0.3, 1.0, 0.0, 1.0,
-			 0.5 + 0.3, -0.5 + 0.3, 0.5 + 0.3, 1.0, 0.0, 1.0,
-			 0.5 + 0.3, -0.5 + 0.3, -0.5 + 0.3, 1.0, 0.0, 1.0,
-
-			 // segundo cubo
-			 // frente
-			  -0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 1.0, 0.0, 0.0,
-			 -0.5 + -0.6, 0.5 + -0.6,  0.5 + -0.6, 1.0, 0.0, 0.0,
-			  0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 1.0, 0.0, 0.0,
-
-			 -0.5 + -0.6, 0.5 + -0.6,  0.5 + -0.6, 1.0, 0.0, 0.0,
-			  0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 1.0, 0.0, 0.0,
-			  0.5 + -0.6, 0.5 + -0.6, 0.5 + -0.6, 1.0, 0.0, 0.0,
-
-			  // tr�s
-			  -0.5 + -0.6, -0.5 + -0.6, -0.5 + -0.6, 0.0, 0.0, 0.0,
-			  -0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 0.0, 0.0, 0.0,
-			   0.5 + -0.6, -0.5 + -0.6, -0.5 + -0.6, 0.0, 0.0, 0.0,
-
-			  -0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 0.0, 0.0, 0.0,
-			   0.5 + -0.6, -0.5 + -0.6, -0.5 + -0.6, 0.0, 0.0, 0.0,
-			   0.5 + -0.6, 0.5 + -0.6, -0.5 + -0.6, 0.0, 0.0, 0.0,
-
-			   // direita
-				0.5 + -0.6, -0.5 + -0.6, -0.5 + -0.6, 0.0, 1.0, 0.0,
-				0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 0.0, 1.0, 0.0,
-				0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 0.0, 1.0, 0.0,
-
-				0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 0.0, 1.0, 0.0,
-				0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 0.0, 1.0, 0.0,
-				0.5 + -0.6, 0.5 + -0.6, 0.5 + -0.6, 0.0, 1.0, 0.0,
-
-				// esquerda
-				-0.5 + -0.6, -0.5 + -0.6, -0.5 + -0.6, 0.0, 0.0, 1.0,
-				-0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 0.0, 0.0, 1.0,
-				-0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 0.0, 0.0, 1.0,
-
-				-0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 0.0, 0.0, 1.0,
-				-0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 0.0, 0.0, 1.0,
-				-0.5 + -0.6, 0.5 + -0.6, 0.5 + -0.6, 0.0, 0.0, 1.0,
-
-				// cima
-				-0.5 + -0.6, 0.5 + -0.6,  0.5 + -0.6, 1.0, 1.0, 0.0,
-				-0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 1.0, 1.0, 0.0,
-				 0.5 + -0.6, 0.5 + -0.6, 0.5 + -0.6, 1.0, 1.0, 0.0,
-
-				-0.5 + -0.6, 0.5 + -0.6,  -0.5 + -0.6, 1.0, 1.0, 0.0,
-				 0.5 + -0.6, 0.5 + -0.6, 0.5 + -0.6, 1.0, 1.0, 0.0,
-				 0.5 + -0.6, 0.5 + -0.6, -0.5 + -0.6, 1.0, 1.0, 0.0,
-
-				 // baixo
-				 -0.5 + -0.6, -0.5 + -0.6,  0.5 + -0.6, 1.0, 0.0, 1.0,
-				 -0.5 + -0.6, -0.5 + -0.6,  -0.5 + -0.6, 1.0, 0.0, 1.0,
-				  0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 1.0, 0.0, 1.0,
-
-				 -0.5 + -0.6, -0.5 + -0.6,  -0.5 + -0.6, 1.0, 0.0, 1.0,
-				  0.5 + -0.6, -0.5 + -0.6, 0.5 + -0.6, 1.0, 0.0, 1.0,
-				  0.5 + -0.6, -0.5 + -0.6, -0.5 + -0.6, 1.0, 0.0, 1.0,
-	};
+	verticesToDrawCount = auxCount;
 
 	GLuint VBO, VAO;
 
-	//Gera��o do identificador do VBO
+	//Gera  o do identificador do VBO
 	glGenBuffers(1, &VBO);
 
-	//Faz a conex�o (vincula) do buffer como um buffer de array
+	//Faz a conex o (vincula) do buffer como um buffer de array
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
 	//Envia os dados do array de floats para o buffer da OpenGl
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesToDraw), verticesToDraw, GL_STATIC_DRAW);
 
-	//Gera��o do identificador do VAO (Vertex Array Object)
+	//Gera  o do identificador do VAO (Vertex Array Object)
 	glGenVertexArrays(1, &VAO);
 
-	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de v�rtices
+	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de v rtices
 	// e os ponteiros para os atributos 
 	glBindVertexArray(VAO);
 
 	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
-	// Localiza��o no shader * (a localiza��o dos atributos devem ser correspondentes no layout especificado no vertex shader)
+	// Localiza  o no shader * (a localiza  o dos atributos devem ser correspondentes no layout especificado no vertex shader)
 	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
 	// Tipo do dado
-	// Se est� normalizado (entre zero e um)
+	// Se est  normalizado (entre zero e um)
 	// Tamanho em bytes 
 	// Deslocamento a partir do byte zero 
 
-	//Atributo posi��o (x, y, z)
+	//Atributo posi  o (x, y, z)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 
@@ -494,11 +456,11 @@ int setupGeometry()
 
 
 
-	// Observe que isso � permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de v�rtice 
-	// atualmente vinculado - para que depois possamos desvincular com seguran�a
+	// Observe que isso   permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de v rtice 
+	// atualmente vinculado - para que depois possamos desvincular com seguran a
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// Desvincula o VAO (� uma boa pr�tica desvincular qualquer buffer ou array para evitar bugs medonhos)
+	// Desvincula o VAO (  uma boa pr tica desvincular qualquer buffer ou array para evitar bugs medonhos)
 	glBindVertexArray(0);
 
 	return VAO;

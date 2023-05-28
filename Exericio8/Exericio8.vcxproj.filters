@@ -22,4 +22,10 @@
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="caio.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="cow.obj" />
+  </ItemGroup>
 </Project>
