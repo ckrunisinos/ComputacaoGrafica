@@ -1,2 +1,12 @@
 ﻿  Origem.cpp
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(117,25): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(203,36): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(318,26): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(342,11): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(343,11): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(347,16): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(348,16): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(350,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(351,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\windows\Downloads\caio-cg 3\HelloTextures\HelloTextures\Origem.cpp(696,14): warning C4101: 'EBO': unreferenced local variable
   HelloTextures.vcxproj -> C:\Users\windows\Downloads\caio-cg 3\HelloTextures\Debug\HelloTextures.exe
