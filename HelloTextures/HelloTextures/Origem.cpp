@@ -34,14 +34,24 @@ using namespace std;
 
 #include "Shader.h"
 
+struct Lighting {
+	float q, kd;
+	glm::vec3 ka, ks;
+};
+
 struct Vertex {
     GLfloat x, y, z;
 	GLfloat r, g, b;
 	GLfloat u, v;
+	GLfloat nx, ny, nz;
 };
 
 struct TextureCoordinate {
 	GLfloat u, v;
+};
+
+struct NormalCoordinate {
+	GLfloat nx, ny, nz;
 };
 
 struct Triangle {
@@ -61,17 +71,18 @@ struct tuple_hash {
     }
 };
 
-// Prot tipo da fun  o de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 // Prot tipos das fun  es
-int setupSprite();
+int setupSprite(Lighting* lighting);
 int loadTexture(string path);
 
 void addTriangleInformation(
 	Triangle triangle,
 	std::vector<Vertex>* vertices,
 	std::vector<TextureCoordinate>* textureCoordinates,
+	std::vector<NormalCoordinate>* normalCoordinates,
 	std::vector<GLfloat>* verticesToDraw,
 	std::vector<int>* triangleIndices,
 	std::unordered_map<std::tuple<int, int, int>, int, tuple_hash>* hashMap
@@ -83,6 +94,7 @@ void addVertexInformation(
 	int normalIndex,
 	std::vector<Vertex>* vertices,
 	std::vector<TextureCoordinate>* textureCoordinates,
+	std::vector<NormalCoordinate>* normalCoordinates,
 	std::vector<GLfloat>* verticesToDraw,
 	std::vector<int>* triangleIndices,
 	std::unordered_map<std::tuple<int, int, int>, int, tuple_hash>* hashMap
@@ -95,6 +107,15 @@ const GLuint WIDTH = 1000, HEIGHT = 1000;
 bool rotateX = false, rotateY = false, rotateZ = false;
 float translateX = 0.0f, translateY = 0.0f, translateZ = 0.0f;
 float scale = 1.0f;
+
+glm::vec3 cameraPos = glm::vec3(0.0, 0.0, 3.0);
+glm::vec3 cameraFront = glm::vec3(0.0, 0.0, -1.0);
+glm::vec3 cameraUp = glm::vec3(0.0, 1.0, 0.0);
+
+bool firstMouse = true;
+float lastX, lastY;
+float sensitivity = 0.05;
+float pitch = 0.0, yaw = -90.0;
 
 int verticesToDrawCount = 0;
 
@@ -123,6 +144,9 @@ int main()
 
 	// Fazendo o registro da fun  o de callback para a janela GLFW
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+
+	glfwSetCursorPos(window,WIDTH / 2, HEIGHT / 2);
 
 	// GLAD: carrega todos os ponteiros d fun  es da OpenGL
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -137,13 +161,22 @@ int main()
 	std::cout << "Renderer: " << renderer << endl;
 	std::cout << "OpenGL version supported " << version << endl;
 
-	Shader shader("../shaders/sprite.vs", "../shaders/sprite.fs");
-
 	// Definindo as dimens es da viewport com as mesmas dimens es da janela da aplica  o
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 
+	Shader shader("../shaders/sprite.vs", "../shaders/sprite.fs");
+	glUseProgram(shader.ID);
+
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0, 0.0, 3.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+	shader.setMat4("view",value_ptr(view));
+
+	//Matriz de projeção perspectiva - definindo o volume de visualização (frustum)
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+	shader.setMat4("projection", glm::value_ptr(projection));
+
+	glEnable(GL_DEPTH_TEST);
 
 	// Compilando e buildando o programa de shader
 	// GLuint texID = loadTexture("../textures/mario.png");
@@ -152,61 +185,50 @@ int main()
 	GLuint texID = loadTexture("../../models/Suzanne.png");
 
 	// Gerando um buffer simples, com a geometria de um tri ngulo
-	GLuint VAO = setupSprite();
+	Lighting lighting;
+	GLuint VAO = setupSprite(&lighting);
 
-	// Ativando o shader
-	glUseProgram(shader.ID);
+	shader.setFloat("kd", 0.5);
+	shader.setVec3("ka", 0.4, 0.4, 0.4);
+	shader.setVec3("ks", 0.5, 0.5, 0.5);
+	shader.setFloat("q", 7.0);
 
-	// Associando com o shader o buffer de textura que conectaremos
-	// antes de desenhar com o bindTexture
-	glUniform1i(glGetUniformLocation(shader.ID, "tex_buffer"), 0);
-
-	glDisable(GL_CULL_FACE);
-
-	//Criando a matriz de projeção usando a GLM
-	glm::mat4 projection = glm::mat4(1); //matriz identidade
-	projection = glm::ortho(000.0, 1000.0, 000.0, 1000.0, 100.0, 1000.0);
-
-	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
-	glUniformMatrix4fv(projLoc, 1, FALSE, glm::value_ptr(projection));
-
-	glEnable(GL_DEPTH_TEST);
+	//Definindo a fonte de luz pontual
+	shader.setVec3("lightPos", -2.0, 10.0, 2.0);
+	shader.setVec3("lightColor", 1.0, 1.0, 1.0);
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
 	{
-		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
 		glfwPollEvents();
 
-		// Definindo as dimensões da viewport com as mesmas dimensões da janela da aplicação
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-		glViewport(0, 0, width, height);
-
-		// Limpa o buffer de cor
-		glClearColor(0.0f, 0.0f, 1.0f, 1.0f); //cor de fundo
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClearColor(0.0f, 1.0f, 1.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//Criando a matriz de modelo usando a GLM
-		glm::mat4 model = glm::mat4(1); //matriz identidade
-		model = glm::translate(model, glm::vec3(400.0, 400.0, -500.0));
+		glLineWidth(10);
+		glPointSize(20);
+
+		//Atualizando a posição e orientação da câmera
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		shader.setMat4("view", glm::value_ptr(view));
+		
+		//Atualizando o shader com a posição da câmera
+		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
+
+		glm::mat4 model = glm::mat4(1);
+		model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
 		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(1.0f, 1.0f, 1.0f));
-		model = glm::scale(model, glm::vec3(200.0, 200.0, 200.0));
-		// model = glm::scale(model, glm::vec3(70.0, 70.0, 70.0));
-		GLint modelLoc = glGetUniformLocation(shader.ID, "model");
-		glUniformMatrix4fv(modelLoc, 1, FALSE, glm::value_ptr(model));
-		//Ativando o primeiro buffer de textura (0) e conectando ao identificador gerado
+		// model = glm::rotate(model, glm::radians(0.0), glm::vec3(0.0, 0.0, 1.0));
+		model = glm::scale(model, glm::vec3(0.2, 0.2, 0.2));
+		shader.setMat4("model", glm::value_ptr(model));
+
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, verticesToDrawCount);
+		glBindVertexArray(0);
+
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texID);
-		// Chamada de desenho - drawcall
-		// Poligono Preenchido - GL_TRIANGLES
-		// Observe que como  usamos EBO, agora usamos a glDrawElements!
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, verticesToDrawCount, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0); //unbind - desconecta
-		glBindTexture(GL_TEXTURE_2D, 0); //unbind da textura
-		// Troca os buffers da tela
+		
 		glfwSwapBuffers(window);
 	}
 	// Pede pra OpenGL desalocar os buffers
@@ -223,6 +245,74 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+
+	// if (key == GLFW_KEY_X && action == GLFW_PRESS)
+	// {
+	// 	rotateX = true;
+	// 	rotateY = false;
+	// 	rotateZ = false;
+	// }
+
+	// if (key == GLFW_KEY_Y && action == GLFW_PRESS)
+	// {
+	// 	rotateX = false;
+	// 	rotateY = true;
+	// 	rotateZ = false;
+	// }
+
+	// if (key == GLFW_KEY_Z && action == GLFW_PRESS)
+	// {
+	// 	rotateX = false;
+	// 	rotateY = false;
+	// 	rotateZ = true;
+	// }
+
+	float cameraSpeed = 0.05;
+
+	if (key == GLFW_KEY_W)
+	{
+		cameraPos += cameraFront * cameraSpeed;
+	}
+	if (key == GLFW_KEY_S)
+	{
+		cameraPos -= cameraFront * cameraSpeed;
+	}
+	if (key == GLFW_KEY_A)
+	{
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+	if (key == GLFW_KEY_D) {
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float offsetx = xpos - lastX;
+	float offsety = lastY - ypos;
+
+	lastX = xpos;
+	lastY = ypos;
+
+	offsetx *= sensitivity;
+	offsety *= sensitivity;
+
+	pitch += offsety;
+	yaw += offsetx;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(front);
+
 }
 
 std::vector<std::string> split(const std::string& s, char delimiter) {
@@ -236,19 +326,39 @@ std::vector<std::string> split(const std::string& s, char delimiter) {
 	return tokens;
 }
 
-void buildObjectVertices(string path, std::vector<GLfloat> *_verticesToDraw, std::vector<int> *_triangleIndices)
+void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> *_verticesToDraw, std::vector<int> *_triangleIndices, Lighting *_lighting)
 {
+	string materialsFileName;
 	std::vector<Vertex> vertices;
 	std::vector<Triangle> triangles;
+	std::vector<NormalCoordinate> normalCoordinates;
 	std::vector<TextureCoordinate> textureCoordinates;
 
-	std::ifstream file(path);
+	std::ifstream file(basePath + fileName);
 	if (file.is_open()) {
 		std::string line;
 		while (std::getline(file, line)) {
 			std::vector<std::string> lineElements = split(line, ' ');
 			if (lineElements.size() > 0) {
-				if (lineElements[0].compare("vt") == 0) {
+				if (lineElements[0].compare("mtllib") == 0) {
+					materialsFileName = lineElements[1];
+				}
+				else if (lineElements[0].compare("vn") == 0) {
+					if (lineElements.size() > 3) {
+						NormalCoordinate normalCoordinate;
+
+						GLfloat nx = std::stof(lineElements[1]);
+						GLfloat ny = std::stof(lineElements[2]);
+						GLfloat nz = std::stof(lineElements[3]);
+
+						normalCoordinate.nx = nx;
+						normalCoordinate.ny = ny;
+						normalCoordinate.nz = nz;
+
+						normalCoordinates.push_back(normalCoordinate);
+					}
+				}
+				else if (lineElements[0].compare("vt") == 0) {
 					if (lineElements.size() > 2) {
 						TextureCoordinate textureCoordinate;
 
@@ -302,6 +412,10 @@ void buildObjectVertices(string path, std::vector<GLfloat> *_verticesToDraw, std
 						int texture2 = std::stoi(yWithTexture[1]) - 1;
 						int texture3 = std::stoi(zWithTexture[1]) - 1;
 
+						int normal1 = std::stoi(xWithTexture[2]) - 1;
+						int normal2 = std::stoi(yWithTexture[2]) - 1;
+						int normal3 = std::stoi(zWithTexture[2]) - 1;
+
 						triangle.vertex1Index = vertice1;
 						triangle.vertex2Index = vertice2;
 						triangle.vertex3Index = vertice3;
@@ -309,6 +423,10 @@ void buildObjectVertices(string path, std::vector<GLfloat> *_verticesToDraw, std
 						triangle.texture1Index = texture1;
 						triangle.texture2Index = texture2;
 						triangle.texture3Index = texture3;
+
+						triangle.normal1Index = normal1;
+						triangle.normal2Index = normal2;
+						triangle.normal3Index = normal3;
 					}
 					else {
 						cout << "lineElements size < 2" << endl;
@@ -336,6 +454,38 @@ void buildObjectVertices(string path, std::vector<GLfloat> *_verticesToDraw, std
 		exit(0);
 	}
 
+	cout << "materialsFileName: " << materialsFileName << endl;
+	if (materialsFileName.length() > 0) {
+		Lighting lighting;
+
+		string materialsFilePath = basePath + materialsFileName;
+		cout << "materialsFilePath: " << materialsFilePath << endl;
+		std::ifstream file(basePath + materialsFileName);
+		if (file.is_open()) {
+			std::string line;
+			while (std::getline(file, line)) {
+				std::vector<std::string> lineElements = split(line, ' ');
+				if (lineElements.size() > 0) {
+					if (lineElements[0].compare("Ns") == 0) {
+						lighting.q = std::stof(lineElements[1]);
+					}
+					else if (lineElements[0].compare("Ka") == 0) {
+						lighting.ka = glm::vec3(std::stof(lineElements[1]), std::stof(lineElements[2]), std::stof(lineElements[3]));
+					}
+					else if (lineElements[0].compare("Ks") == 0) {
+						lighting.ks = glm::vec3(std::stof(lineElements[1]), std::stof(lineElements[2]), std::stof(lineElements[3]));
+					}
+				}
+			}
+			file.close();
+			*_lighting = lighting;
+		}
+		else {
+			std::cerr << "Unable to open materials file";
+			exit(0);
+		}
+	}
+
 	std::cout << "Arquivo OBJ lido com sucesso" << endl;
 
 	std::vector<int> triangleIndices;
@@ -349,6 +499,7 @@ void buildObjectVertices(string path, std::vector<GLfloat> *_verticesToDraw, std
 			triangle,
 			&vertices,
 			&textureCoordinates,
+			&normalCoordinates,
 			&verticesToDraw,
 			&triangleIndices,
 			&hashMap
@@ -363,6 +514,7 @@ void addTriangleInformation(
 	Triangle triangle,
 	std::vector<Vertex>* vertices,
 	std::vector<TextureCoordinate>* textureCoordinates,
+	std::vector<NormalCoordinate>* normalCoordinates,
 	std::vector<GLfloat>* verticesToDraw,
 	std::vector<int>* triangleIndices,
 	std::unordered_map<std::tuple<int, int, int>, int, tuple_hash>* hashMap
@@ -370,10 +522,10 @@ void addTriangleInformation(
 	addVertexInformation(
 		triangle.vertex1Index,
 		triangle.texture1Index,
-		// triangle.normal1Index,
-		10,
+		triangle.normal1Index,
 		vertices,
 		textureCoordinates,
+		normalCoordinates,
 		verticesToDraw,
 		triangleIndices,
 		hashMap
@@ -382,10 +534,10 @@ void addTriangleInformation(
 	addVertexInformation(
 		triangle.vertex2Index,
 		triangle.texture2Index,
-		// triangle.normal2Index,
-		10,
+		triangle.normal2Index,
 		vertices,
 		textureCoordinates,
+		normalCoordinates,
 		verticesToDraw,
 		triangleIndices,
 		hashMap
@@ -394,10 +546,10 @@ void addTriangleInformation(
 	addVertexInformation(
 		triangle.vertex3Index,
 		triangle.texture3Index,
-		// triangle->normal3Index,
-		10,
+		triangle.normal3Index,
 		vertices,
 		textureCoordinates,
+		normalCoordinates,
 		verticesToDraw,
 		triangleIndices,
 		hashMap
@@ -410,6 +562,7 @@ void addVertexInformation(
 	int normalIndex,
 	std::vector<Vertex>* vertices,
 	std::vector<TextureCoordinate>* textureCoordinates,
+	std::vector<NormalCoordinate>* normalCoordinates,
 	std::vector<GLfloat>* verticesToDraw,
 	std::vector<int>* triangleIndices,
 	std::unordered_map<std::tuple<int, int, int>, int, tuple_hash>* hashMapPtr
@@ -442,22 +595,34 @@ void addVertexInformation(
 	else {
 		TextureCoordinate textureCoordinate = textureCoordinates->at(textureIndex);
 
-		// if (textureCoordinate.u < 0) {
-		// 	cout << "Texture coordinate is negative: " << textureCoordinate.u << endl;
-		// }
-
 		verticesToDraw->push_back(textureCoordinate.u);
 		verticesToDraw->push_back(textureCoordinate.v);
 	}
 
-	int verticeToDrawIndex = (verticesToDraw->size() / 8) - 1;
+	if (normalIndex < 0) {
+		float nx = (float) rand()/RAND_MAX;
+		float ny = (float) rand()/RAND_MAX;
+		float nz = (float) rand()/RAND_MAX;
+		verticesToDraw->push_back(nx);
+		verticesToDraw->push_back(ny);
+		verticesToDraw->push_back(nz);
+	}
+	else {
+		NormalCoordinate normalCoordinate = normalCoordinates->at(normalIndex);
+
+		verticesToDraw->push_back(normalCoordinate.nx);
+		verticesToDraw->push_back(normalCoordinate.ny);
+		verticesToDraw->push_back(normalCoordinate.nz);
+	}
+
+	int verticeToDrawIndex = (verticesToDraw->size() / 11) - 1;
 	triangleIndices->push_back(verticeToDrawIndex);
 
 	// hashMap[std::make_tuple(vertexIndex+1, textureIndex+1, normalIndex+1)] = verticeToDrawIndex;
 	// }
 }
 
-int setupSprite()
+int setupSprite(Lighting* lighting)
 {
 	std::vector<GLfloat> verticesToDraw;
 	std::vector<int> triangleIndices;
@@ -465,8 +630,9 @@ int setupSprite()
 // "../../models/wolf.obj"
 	// buildObjectVertices("../../models/cow.obj", &verticesToDraw, &triangleIndices);
 	// buildObjectVertices("../../models/wolf.obj", &verticesToDraw, &triangleIndices);
-	// buildObjectVertices("../../models/Renegade.obj", &verticesToDraw, &triangleIndices);
-	buildObjectVertices("../../3D_Models/Suzanne/SuzanneTriTextured.obj", &verticesToDraw, &triangleIndices);
+	// buildObjectVertices("../../models/", "Renegade.obj", &verticesToDraw, &triangleIndices, lighting);
+	buildObjectVertices("../../3D_Models/Suzanne/", "SuzanneTriTextured.obj", &verticesToDraw, &triangleIndices, lighting);
+	// buildObjectVertices("../../3D_Models/Suzanne/suzanneTriLowPoly.obj", &verticesToDraw, &triangleIndices);
 	verticesToDrawCount = triangleIndices.size();
 
 	cout << "CONSTRUIMOS O ARRAY" << endl;
@@ -480,29 +646,53 @@ int setupSprite()
 	GLuint VAO;
 	GLuint VBO, EBO;
 
-	glGenVertexArrays(1, &VAO);
+	//Geração do identificador do VBO
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
 
-	glBindVertexArray(VAO);
-
+	//Faz a conexão (vincula) do buffer como um buffer de array
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	//Envia os dados do array de floats para o buffer da OpenGl
 	glBufferData(GL_ARRAY_BUFFER, verticesToDraw.size() * sizeof(float), verticesToDraw.data(), GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangleIndices.size() * sizeof(int), triangleIndices.data(), GL_STATIC_DRAW);
+	//Geração do identificador do VAO (Vertex Array Object)
+	glGenVertexArrays(1, &VAO);
 
-	// Primeiro atributo - Layout 0 - posição - 3 valores - x, y, z
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
+	// e os ponteiros para os atributos 
+	glBindVertexArray(VAO);
+
+	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
+	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
+	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
+	// Tipo do dado
+	// Se está normalizado (entre zero e um)
+	// Tamanho em bytes 
+	// Deslocamento a partir do byte zero 
+
+	//Atributo posição (x, y, z)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
-	// Segundo atributo - Layout 1 - cor - 3 valores - r, g, b
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	//Atributo cor (r, g, b)
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
-	// Terceiro atributo - Layout 2 - coordenadas de textura - 2 valores - s, t (ou u, v)
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+
+	//Atributo coordenada de textura (s, t)
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 
-	glBindVertexArray(0); //desvincula
+	//Atributo normal do vértice (x, y, z)
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (GLvoid*)(8 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(3);
+
+
+	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
+	// atualmente vinculado - para que depois possamos desvincular com segurança
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
+	glBindVertexArray(0);
 
 	return VAO;
 }
