@@ -1,0 +1,7 @@
+﻿  Origem.cpp
+C:\Users\windows\Downloads\CGCCHibrido-main\Hello3D\Exericio8\Origem.cpp(417,35): warning C4305: '=': truncation from 'double' to 'GLfloat'
+C:\Users\windows\Downloads\CGCCHibrido-main\Hello3D\Exericio8\Origem.cpp(419,34): warning C4305: '=': truncation from 'double' to 'GLfloat'
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+Origem.obj : error LNK2019: unresolved external symbol _stbi_load referenced in function "int __cdecl loadTexture(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (?loadTexture@@YAHV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+Origem.obj : error LNK2019: unresolved external symbol _stbi_image_free referenced in function "int __cdecl loadTexture(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (?loadTexture@@YAHV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+C:\Users\windows\Downloads\CGCCHibrido-main\Hello3D\Debug\Hello3D.exe : fatal error LNK1120: 2 unresolved externals
