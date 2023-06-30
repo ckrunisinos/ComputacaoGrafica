@@ -15,6 +15,7 @@
 #include <vector>
 #include <sstream>
 #include <unordered_map>
+#include "Camera.h"
 
 using namespace std;
 
@@ -28,11 +29,15 @@ using namespace std;
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 //stb_image
 #include "stb_image.h"
 
 #include "Shader.h"
+#include "Mesh.h"
+#include "Animal.h"
+#include "Bezier.h"
 
 struct Lighting {
 	float q, kd;
@@ -75,8 +80,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 // Prot tipos das fun  es
-int setupSprite(Lighting* lighting);
+int setupSprite(string basePath, string fileName, Lighting* lighting, int *_verticesCount);
 int loadTexture(string path);
+void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> *_verticesToDraw, std::vector<int> *_triangleIndices, Lighting *_lighting);
+int setupSpriteFromVertices(std::vector<GLfloat> verticesToDraw, std::vector<int> triangleIndices, int *_verticesCount);
+GLuint buildGroundVertices(int *_verticesCount);
+
+Mesh cow, fox, wolf, suzanne;
 
 void addTriangleInformation(
 	Triangle triangle,
@@ -100,6 +110,10 @@ void addVertexInformation(
 	std::unordered_map<std::tuple<int, int, int>, int, tuple_hash>* hashMap
 );
 
+vector <glm::vec3> generateControlPointsSet();
+std::vector<glm::vec3> generateUnisinosPointsSet();
+GLuint generateControlPointsBuffer(vector <glm::vec3> controlPoints);
+
 // Dimens es da janela (pode ser alterado em tempo de execu  o)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 
@@ -108,22 +122,15 @@ bool rotateX = false, rotateY = false, rotateZ = false;
 float translateX = 0.0f, translateY = 0.0f, translateZ = 0.0f;
 float scale = 1.0f;
 
-glm::vec3 cameraPos = glm::vec3(0.0, 0.0, 3.0);
-glm::vec3 cameraFront = glm::vec3(0.0, 0.0, -1.0);
-glm::vec3 cameraUp = glm::vec3(0.0, 1.0, 0.0);
-
-bool firstMouse = true;
-float lastX, lastY;
-float sensitivity = 0.05;
-float pitch = 0.0, yaw = -90.0;
-
-int verticesToDrawCount = 0;
+Camera camera;
 
 // Fun  o MAIN
 int main()
 {
 	// Inicializa  o da GLFW
 	glfwInit();
+
+	camera.initialize(0.0, 0.0, 3.0);
 
 	//Muita aten  o aqui: alguns ambientes n o aceitam essas configura  es
 	//Voc  deve adaptar para a vers o do OpenGL suportada por sua placa
@@ -152,7 +159,6 @@ int main()
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
-
 	}
 
 	// Obtendo as informa  es de vers o
@@ -178,26 +184,119 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 
+
+
 	// Compilando e buildando o programa de shader
 	// GLuint texID = loadTexture("../textures/mario.png");
-	// GLuint texID = loadTexture("../textures/wolf.png");
-	// GLuint texID = loadTexture("../../models/Renegade.jpg");
-	GLuint texID = loadTexture("../../models/Suzanne.png");
+	GLuint wolfTextureID = loadTexture("../../models/wolf.png");
+	GLuint suzanneTextureID = loadTexture("../../models/Suzanne.png");
+	GLuint fenceTextureID = loadTexture("../../models/wooden-fence.jpg");
+	GLuint cowTextureID = loadTexture("../textures/mario.png");
+	GLuint foxTextureID = loadTexture("../../models/fox.png");
+	GLuint groundTextureID = loadTexture("../../models/grass.jpg");
 
 	// Gerando um buffer simples, com a geometria de um tri ngulo
 	Lighting lighting;
-	GLuint VAO = setupSprite(&lighting);
+	int suzanneVerticesCount;
+	GLuint suzanneVAO = setupSprite("../../3D_Models/Suzanne/", "SuzanneTriTextured.obj", &lighting, &suzanneVerticesCount);
 
+	Lighting cowLighting;
+	int cowVerticesCount;
+	GLuint cowVAO = setupSprite("../../models/", "cow.obj", &cowLighting, &cowVerticesCount);
+
+	Lighting foxLighting;
+	int foxVerticesCount;
+	GLuint foxVAO = setupSprite("../../models/", "fox.obj", &foxLighting, &foxVerticesCount);
+
+	Lighting wolfLighting;
+	int wolfVerticesCount;
+	GLuint wolfVAO = setupSprite("../../models/", "wolf.obj", &wolfLighting, &wolfVerticesCount);
+
+	int groundVerticesCount;
+	GLuint groundVAO = buildGroundVertices(&groundVerticesCount);
+	cout << "groundVerticesCount: " << groundVerticesCount << endl;
+
+	Mesh ground;
+	ground.initialize(groundVAO, groundVerticesCount, &shader, groundTextureID, glm::vec3(-100.0, -2.0, -250.0), glm::vec3(500.0, 500.0, 500.0));
+
+	cow.initialize(cowVAO, cowVerticesCount, &shader, cowTextureID, glm::vec3(-1.8, -0.13, -1.2), glm::vec3(0.04, 0.04, 0.04), 0.0, glm::vec3(0.0, 1.0, 0.0));
+
+	wolf.initialize(wolfVAO, wolfVerticesCount, &shader, wolfTextureID, glm::vec3(-1.8, -0.33, -4.8), glm::vec3(0.3, 0.3, 0.3), 90.0, glm::vec3(0.0, 1.0, 0.0));
+
+	suzanne.initialize(suzanneVAO, suzanneVerticesCount, &shader, suzanneTextureID, glm::vec3(1.3, -0.13, 0.0), glm::vec3(0.15, 0.15, 0.15), 270.0, glm::vec3(0.0, 1.0, 0.0));
+
+	fox.initialize(foxVAO, foxVerticesCount, &shader, foxTextureID, glm::vec3(1.45, -0.4, -4.0), glm::vec3(0.003, 0.003, 0.003), 270.0, glm::vec3(0.0, 1.0, 0.0));
+
+	Lighting fenceLighting;
+	int fenceVerticesCount;
+	std::vector<GLfloat> fenceVertices;
+	std::vector<int> fenceTriangleIndices;
+	buildObjectVertices("../../models/", "wooden-fence.obj", &fenceVertices, &fenceTriangleIndices, &fenceLighting);
+	GLuint fenceVAO = setupSpriteFromVertices(fenceVertices, fenceTriangleIndices, &fenceVerticesCount);
+
+	std::vector<Mesh> fences;
+
+	for (int i = 0; i < 20; i++) {
+		Mesh fence;
+		float rotate = 270.0;
+		float y = -0.23;
+		float z = -0.5;
+		glm::vec3 position = glm::vec3(-0.4, y, z * i);
+
+		if (i >= 10) {
+			rotate = 90.0;
+			position = glm::vec3(0.4, y, z * (i % 10));
+		}
+
+		fence.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, position, glm::vec3(0.02, 0.002, 0.002), rotate, glm::vec3(0.0, 1.0, 0.0));
+		fences.push_back(fence);
+	}
+
+	Mesh horizontalFence1;
+	horizontalFence1.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(1.4, -0.23, -2.4), glm::vec3(0.02, 0.002, 0.002));
+	fences.push_back(horizontalFence1);
+
+	Mesh horizontalFence2;
+	horizontalFence2.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(-1.4, -0.23, -2.4), glm::vec3(0.02, 0.002, 0.002));
+	fences.push_back(horizontalFence2);
+
+	Mesh horizontalFence3;
+	horizontalFence3.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(-1.4, -0.23, 0.9), glm::vec3(0.02, 0.002, 0.002));
+	fences.push_back(horizontalFence3);
+
+	Mesh horizontalFence4;
+	horizontalFence4.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(1.4, -0.23, 0.9), glm::vec3(0.02, 0.002, 0.002));
+	fences.push_back(horizontalFence4);
+
+	Mesh horizontalFence5;
+	horizontalFence5.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(1.4, -0.23, -5.2), glm::vec3(0.02, 0.002, 0.002));
+	fences.push_back(horizontalFence5);
+
+	Mesh horizontalFence6;
+	horizontalFence6.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(-1.4, -0.23, -5.2), glm::vec3(0.02, 0.002, 0.002));
+	fences.push_back(horizontalFence6);
+
+	Mesh verticalFence1;
+	verticalFence1.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(2.4, -0.23, -2.3), glm::vec3(0.07, 0.002, 0.002), 270.0, glm::vec3(0.0, 1.0, 0.0));
+	fences.push_back(verticalFence1);
+
+	Mesh verticalFence2;
+	verticalFence2.initialize(fenceVAO, fenceVerticesCount, &shader, fenceTextureID, glm::vec3(-2.38, -0.23, -2.3), glm::vec3(0.07, 0.002, 0.002), 270.0, glm::vec3(0.0, 1.0, 0.0));
+	fences.push_back(verticalFence2);
+
+	// shader.setFloat("kd", 0.5);
+	// shader.setVec3("ka", 0.4, 0.4, 0.4);
+	// shader.setVec3("ks", 0.5, 0.5, 0.5);
+	// shader.setFloat("q", 7.0);
+	shader.setFloat("ka", 0.2);
 	shader.setFloat("kd", 0.5);
-	shader.setVec3("ka", 0.4, 0.4, 0.4);
-	shader.setVec3("ks", 0.5, 0.5, 0.5);
-	shader.setFloat("q", 7.0);
+	shader.setFloat("ks", 0.5);
+	shader.setFloat("q", 10.0);
 
 	//Definindo a fonte de luz pontual
 	shader.setVec3("lightPos", -2.0, 10.0, 2.0);
-	shader.setVec3("lightColor", 1.0, 1.0, 1.0);
+	shader.setVec3("lightColor", 1.0, 1.0, 0.0);
 
-	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
@@ -208,31 +307,39 @@ int main()
 		glLineWidth(10);
 		glPointSize(20);
 
-		//Atualizando a posição e orientação da câmera
-		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		glm::vec3 cameraPosition = camera.getPosition();
+		glm::mat4 view = camera.getView();
 		shader.setMat4("view", glm::value_ptr(view));
 		
-		//Atualizando o shader com a posição da câmera
-		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
+		shader.setVec3("cameraPos", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
-		glm::mat4 model = glm::mat4(1);
-		model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
-		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(1.0f, 1.0f, 1.0f));
-		// model = glm::rotate(model, glm::radians(0.0), glm::vec3(0.0, 0.0, 1.0));
-		model = glm::scale(model, glm::vec3(0.2, 0.2, 0.2));
-		shader.setMat4("model", glm::value_ptr(model));
+		ground.update();
+		ground.draw();
 
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, verticesToDrawCount);
-		glBindVertexArray(0);
+		for (int i = 0; i < fences.size(); i++) {
+			Mesh fence = fences[i];
+			fence.update();
+			fence.draw();
+		}
+
+		cow.update();
+		cow.draw();
+
+		fox.update();
+		fox.draw();
+
+		wolf.update();
+		wolf.draw();
+
+		suzanne.update();
+		suzanne.draw();
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texID);
 		
 		glfwSwapBuffers(window);
 	}
 	// Pede pra OpenGL desalocar os buffers
-	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &suzanneVAO);
 	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
 	glfwTerminate();
 	return 0;
@@ -246,73 +353,41 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
-	// if (key == GLFW_KEY_X && action == GLFW_PRESS)
-	// {
-	// 	rotateX = true;
-	// 	rotateY = false;
-	// 	rotateZ = false;
-	// }
-
-	// if (key == GLFW_KEY_Y && action == GLFW_PRESS)
-	// {
-	// 	rotateX = false;
-	// 	rotateY = true;
-	// 	rotateZ = false;
-	// }
-
-	// if (key == GLFW_KEY_Z && action == GLFW_PRESS)
-	// {
-	// 	rotateX = false;
-	// 	rotateY = false;
-	// 	rotateZ = true;
-	// }
-
-	float cameraSpeed = 0.05;
-
 	if (key == GLFW_KEY_W)
 	{
-		cameraPos += cameraFront * cameraSpeed;
+		camera.moveForward();
 	}
 	if (key == GLFW_KEY_S)
 	{
-		cameraPos -= cameraFront * cameraSpeed;
+		camera.moveBackward();
 	}
 	if (key == GLFW_KEY_A)
 	{
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.moveLeft();
 	}
 	if (key == GLFW_KEY_D) {
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.moveRight();
+	}
+	if (key == GLFW_KEY_C && action == GLFW_RELEASE) {
+		camera.toggleCrouch();
+	}
+	if (key == GLFW_KEY_M && action == GLFW_RELEASE) {
+		suzanne.togglePosition();
+	}
+	if (key == GLFW_KEY_V && action == GLFW_RELEASE) {
+		cow.togglePosition();
+	}
+	if (key == GLFW_KEY_R && action == GLFW_RELEASE) {
+		fox.togglePosition();
+	}
+	if (key == GLFW_KEY_L && action == GLFW_RELEASE) {
+		wolf.togglePosition();
 	}
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
-	}
-
-	float offsetx = xpos - lastX;
-	float offsety = lastY - ypos;
-
-	lastX = xpos;
-	lastY = ypos;
-
-	offsetx *= sensitivity;
-	offsety *= sensitivity;
-
-	pitch += offsety;
-	yaw += offsetx;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	front.y = sin(glm::radians(pitch));
-	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(front);
-
+	camera.mouse_callback(xpos, ypos);
 }
 
 std::vector<std::string> split(const std::string& s, char delimiter) {
@@ -324,6 +399,25 @@ std::vector<std::string> split(const std::string& s, char delimiter) {
 	}
 
 	return tokens;
+}
+
+GLuint buildGroundVertices(int *_verticesCount) {
+	vector<GLfloat> vertices{
+		0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+		1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
+
+		1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+		1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+	};
+	
+	vector<int> indices{
+		0, 1, 2,
+		3, 4, 5
+	};
+
+	return setupSpriteFromVertices(vertices, indices, _verticesCount);
 }
 
 void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> *_verticesToDraw, std::vector<int> *_triangleIndices, Lighting *_lighting)
@@ -368,11 +462,6 @@ void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> 
 						textureCoordinate.u = u;
 						textureCoordinate.v = v;
 
-						if (textureCoordinate.u < 0) {
-							cout << "Texture coordinate is negative: " << textureCoordinate.u << endl;
-							cout << lineElements[1] << endl;
-						}
-
 						textureCoordinates.push_back(textureCoordinate);
 					}
 					else {
@@ -390,9 +479,12 @@ void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> 
 					vertice.y = y;
 					vertice.z = z;
 
-					vertice.r = (float) rand()/RAND_MAX;
-					vertice.g = (float) rand()/RAND_MAX;
-					vertice.b = (float) rand()/RAND_MAX;
+					// vertice.r = (float) rand()/RAND_MAX;
+					// vertice.g = (float) rand()/RAND_MAX;
+					// vertice.b = (float) rand()/RAND_MAX;
+					vertice.r = 1.0;
+					vertice.g = 1.0;
+					vertice.b = 1.0;
 
 					vertices.push_back(vertice);
 				}
@@ -412,9 +504,15 @@ void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> 
 						int texture2 = std::stoi(yWithTexture[1]) - 1;
 						int texture3 = std::stoi(zWithTexture[1]) - 1;
 
-						int normal1 = std::stoi(xWithTexture[2]) - 1;
-						int normal2 = std::stoi(yWithTexture[2]) - 1;
-						int normal3 = std::stoi(zWithTexture[2]) - 1;
+						int normal1 = -1;
+						int normal2 = -1;
+						int normal3 = -1;
+
+						if (split(lineElements[1], '/').size() >= 3) {
+							normal1 = std::stoi(xWithTexture[2]) - 1;
+							normal2 = std::stoi(yWithTexture[2]) - 1;
+							normal3 = std::stoi(zWithTexture[2]) - 1;
+						}
 
 						triangle.vertex1Index = vertice1;
 						triangle.vertex2Index = vertice2;
@@ -429,7 +527,6 @@ void buildObjectVertices(string basePath, string fileName, std::vector<GLfloat> 
 						triangle.normal3Index = normal3;
 					}
 					else {
-						cout << "lineElements size < 2" << endl;
 						int vertice1 = std::stoi(lineElements[1]) - 1;
 						int vertice2 = std::stoi(lineElements[2]) - 1;
 						int vertice3 = std::stoi(lineElements[3]) - 1;
@@ -622,27 +719,8 @@ void addVertexInformation(
 	// }
 }
 
-int setupSprite(Lighting* lighting)
+int setupSpriteFromVertices(std::vector<GLfloat> verticesToDraw, std::vector<int> triangleIndices, int *_verticesCount)
 {
-	std::vector<GLfloat> verticesToDraw;
-	std::vector<int> triangleIndices;
-
-// "../../models/wolf.obj"
-	// buildObjectVertices("../../models/cow.obj", &verticesToDraw, &triangleIndices);
-	// buildObjectVertices("../../models/wolf.obj", &verticesToDraw, &triangleIndices);
-	// buildObjectVertices("../../models/", "Renegade.obj", &verticesToDraw, &triangleIndices, lighting);
-	buildObjectVertices("../../3D_Models/Suzanne/", "SuzanneTriTextured.obj", &verticesToDraw, &triangleIndices, lighting);
-	// buildObjectVertices("../../3D_Models/Suzanne/suzanneTriLowPoly.obj", &verticesToDraw, &triangleIndices);
-	verticesToDrawCount = triangleIndices.size();
-
-	cout << "CONSTRUIMOS O ARRAY" << endl;
-
-	cout << "verticesToDraw.size(): " << verticesToDraw.size() << endl;
-	cout << "triangleIndices.size(): " << triangleIndices.size() << endl;
-	cout << "verticesToDrawCount: " << verticesToDrawCount << endl;
-
-	std::cout << "Array de vértices montado com sucesso" << endl;
-
 	GLuint VAO;
 	GLuint VBO, EBO;
 
@@ -661,14 +739,6 @@ int setupSprite(Lighting* lighting)
 	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
 	// e os ponteiros para os atributos 
 	glBindVertexArray(VAO);
-
-	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
-	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
-	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
-	// Tipo do dado
-	// Se está normalizado (entre zero e um)
-	// Tamanho em bytes 
-	// Deslocamento a partir do byte zero 
 
 	//Atributo posição (x, y, z)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (GLvoid*)0);
@@ -694,7 +764,26 @@ int setupSprite(Lighting* lighting)
 	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
 	glBindVertexArray(0);
 
+	*_verticesCount = triangleIndices.size();
+
 	return VAO;
+}
+
+int setupSprite(string basePath, string fileName, Lighting* lighting, int *_verticesCount)
+{
+	std::vector<GLfloat> verticesToDraw;
+	std::vector<int> triangleIndices;
+
+	buildObjectVertices(basePath, fileName, &verticesToDraw, &triangleIndices, lighting);
+
+	cout << "CONSTRUIMOS O ARRAY" << endl;
+
+	cout << "verticesToDraw.size(): " << verticesToDraw.size() << endl;
+	cout << "triangleIndices.size(): " << triangleIndices.size() << endl;
+
+	std::cout << "Array de vértices montado com sucesso" << endl;
+
+	return setupSpriteFromVertices(verticesToDraw, triangleIndices, _verticesCount);
 }
 
 int loadTexture(string path)

@@ -13,9 +13,13 @@ out vec4 color;
 // uniform float kd;
 // uniform float ks;
 // uniform float q;
-uniform vec3 ka;
+// uniform vec3 ka;
+// uniform float kd;
+// uniform vec3 ks;
+// uniform float q;
+uniform float ka;
 uniform float kd;
-uniform vec3 ks;
+uniform float ks;
 uniform float q;
 
 //Propriedades da fonte de luz

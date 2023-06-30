@@ -145,14 +145,26 @@
     <ClCompile Include="..\..\Common\src\glad.c" />
     <ClCompile Include="..\..\Common\src\Shader.cpp" />
     <ClCompile Include="..\..\Common\src\stb_image.cpp" />
+    <ClCompile Include="Animal.cpp" />
+    <ClCompile Include="Bezier.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Curve.cpp" />
+    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Origem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\include\Shader.h" />
     <ClInclude Include="..\..\Common\include\stb_image.h" />
+    <ClInclude Include="Animal.h" />
+    <ClInclude Include="Bezier.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Curve.h" />
+    <ClInclude Include="Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\3D_Models\Suzanne\SuzanneTriTextured.mtl" />
+    <None Include="..\..\models\bison.mtl" />
+    <None Include="..\..\models\fox.mtl" />
     <None Include="..\..\models\Renegade.mtl" />
     <None Include="..\..\models\wolf.mtl" />
     <None Include="..\shaders\sprite.fs" />
@@ -162,10 +174,19 @@
     <Object Include="..\..\3D_Models\Suzanne\SuzanneTriTextured.obj">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </Object>
+    <Object Include="..\..\models\bison.obj">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Object>
     <Object Include="..\..\models\cow.obj">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </Object>
     <Object Include="..\..\models\cube.obj">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Object>
+    <Object Include="..\..\models\fence.obj">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Object>
+    <Object Include="..\..\models\fox.obj">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </Object>
     <Object Include="..\..\models\Renegade.obj">
@@ -177,12 +198,21 @@
     <Object Include="..\..\models\wolf.obj">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </Object>
+    <Object Include="..\..\models\wooden-fence.obj">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Object>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\models\bison.png" />
     <Image Include="..\..\models\cube.png" />
+    <Image Include="..\..\models\fence.png" />
+    <Image Include="..\..\models\fox.png" />
+    <Image Include="..\..\models\grass.jpg" />
     <Image Include="..\..\models\Renegade.jpg" />
     <Image Include="..\..\models\Suzanne.png" />
+    <Image Include="..\..\models\wolf.png" />
     <Image Include="..\..\models\wolf.tif" />
+    <Image Include="..\..\models\wooden-fence.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -39,6 +39,21 @@
     <ClCompile Include="..\..\Common\src\stb_image.cpp">
       <Filter>Common code\src</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="Animal.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="Bezier.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="Curve.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\include\Shader.h">
@@ -46,6 +61,21 @@
     </ClInclude>
     <ClInclude Include="..\..\Common\include\stb_image.h">
       <Filter>Common code\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="Animal.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="Bezier.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="Curve.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -58,6 +88,8 @@
     <None Include="..\..\models\wolf.mtl" />
     <None Include="..\..\models\Renegade.mtl" />
     <None Include="..\..\3D_Models\Suzanne\SuzanneTriTextured.mtl" />
+    <None Include="..\..\models\bison.mtl" />
+    <None Include="..\..\models\fox.mtl" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="..\..\models\cow.obj" />
@@ -66,6 +98,10 @@
     <Object Include="..\..\models\Renegade.obj" />
     <Object Include="..\..\models\cube.obj" />
     <Object Include="..\..\3D_Models\Suzanne\SuzanneTriTextured.obj" />
+    <Object Include="..\..\models\fence.obj" />
+    <Object Include="..\..\models\wooden-fence.obj" />
+    <Object Include="..\..\models\bison.obj" />
+    <Object Include="..\..\models\fox.obj" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\models\Suzanne.png">
@@ -78,6 +114,24 @@
       <Filter>Arquivos de Recurso</Filter>
     </Image>
     <Image Include="..\..\models\cube.png">
+      <Filter>Arquivos de Recurso</Filter>
+    </Image>
+    <Image Include="..\..\models\fence.png">
+      <Filter>Arquivos de Recurso</Filter>
+    </Image>
+    <Image Include="..\..\models\wooden-fence.jpg">
+      <Filter>Arquivos de Recurso</Filter>
+    </Image>
+    <Image Include="..\..\models\grass.jpg">
+      <Filter>Arquivos de Recurso</Filter>
+    </Image>
+    <Image Include="..\..\models\bison.png">
+      <Filter>Arquivos de Recurso</Filter>
+    </Image>
+    <Image Include="..\..\models\fox.png">
+      <Filter>Arquivos de Recurso</Filter>
+    </Image>
+    <Image Include="..\..\models\wolf.png">
       <Filter>Arquivos de Recurso</Filter>
     </Image>
   </ItemGroup>
